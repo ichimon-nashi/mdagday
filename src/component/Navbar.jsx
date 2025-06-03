@@ -1,16 +1,15 @@
-import { useNavigate } from 'react-router-dom';
-
-const Navbar = ({ userDetails, title = "豪神組員任務互換APP" }) => {
-    const navigate = useNavigate();
-
+const Navbar = ({ userDetails, title = "豪神組員任務互換APP", onLogout }) => {
     // Handler for logout
     const handleLogout = () => {
-        window.location.reload();
+        if (onLogout) {
+            onLogout(); // Call parent logout function
+        } else {
+            window.location.reload(); // Fallback to page reload
+        }
     };
 
-    const handleBack = () => {
-        navigate('/mdaduty');
-    };
+    // Remove the handleBack function since we're not using routing
+    // If you need navigation, you can handle it differently
 
     const navbarNickname = () => {
         switch(userDetails.name) {
@@ -24,16 +23,16 @@ const Navbar = ({ userDetails, title = "豪神組員任務互換APP" }) => {
     }
 
     return (
-        <nav className="bg-blue-600 text-white p-4 shadow-md sticky top-0 z-40">
-            <div className="w-full flex justify-between items-center px-4">
-                <div className="navbar-title text-xl font-bold">{title}</div>
-                <div className="flex items-center space-x-4">
+        <nav className="navbar">
+            <div className="navbar-container">
+                <div className="navbar-title">{title}</div>
+                <div className="navbar-right">
                     <div>
                         <p className="navbar-welcomeMsg">Hi, {navbarNickname()}</p>
                     </div>
                     <button 
                         onClick={handleLogout}
-                        className="logoutButton bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded text-sm"
+                        className="logoutButton"
                     >
                         登出
                     </button>

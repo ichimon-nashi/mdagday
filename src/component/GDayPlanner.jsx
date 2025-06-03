@@ -1,8 +1,42 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { Calendar, Download, Camera } from 'lucide-react'
-import toast, { Toaster } from 'react-hot-toast'
+//Modify PDF Coordinates:
+//applicationDate1: 133,479;
+//applicationDate2: 467,479;
+//employeeID1: 259,479;
+//employeeID2: 598,479;
+//name1: 337,479; 
+//name2: 674,479;
+//date1a: 72,422;
+//vacation1a: 165,422;
+//date1b: 409,422;
+//vacation1b: 502,422;
+//date2a: 72,399;
+//vacation2a: 165,399;
+//date2b: 409,399;
+//vacation2b: 502,399;
+//date3a: 72,377;
+//vacation3a: 165,377;
+//date3b: 409,377;
+//vacation3b: 502,377;
+//date4a: 231,422;
+//vacation4a: 333, 422;
+//date4b: 569, 422;
+//vacation4b: 670, 422;
+//date5a: 231, 399;
+//vacation5a: 333, 399;
+//date5b: 569, 399;
+//vacation5b: 670, 399;
+//date6a: 231, 377;
+//vacation6a: 333, 377;
+//date6b: 569,377;
+//vacation6b: 670,377;
 
-const GDayPlanner = () => {
+import React, { useState, useRef, useEffect } from 'react'
+import { Calendar, Camera, X } from 'lucide-react'
+import toast, { Toaster } from 'react-hot-toast'
+import Navbar from './Navbar'
+import formTemplateImage from '../assets/form-template.png'
+
+const GDayPlanner = ({ userDetails, onLogout }) => {
     const [draggedItem, setDraggedItem] = useState(null)
     const [droppedItems, setDroppedItems] = useState({})
     const [draggedFromDate, setDraggedFromDate] = useState(null)
@@ -10,63 +44,67 @@ const GDayPlanner = () => {
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
     const [showYearPicker, setShowYearPicker] = useState(false)
     const [showMonthPicker, setShowMonthPicker] = useState(false)
-    const [touchedItem, setTouchedItem] = useState(null)
-    const [dragPreview, setDragPreview] = useState({ visible: false, x: 0, y: 0 })
+    const [selectedLeaveType, setSelectedLeaveType] = useState(null)
+    const [isTouchDevice, setIsTouchDevice] = useState(false)
     const plannerRef = useRef(null)
 
-    // Leave types with colors
+    // Enhanced device detection for iPads and tablets
+    useEffect(() => {
+        const detectTouchDevice = () => {
+            const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+            const isTabletSize = window.innerWidth <= 1024 && window.innerHeight <= 1366
+            const userAgent = navigator.userAgent.toLowerCase()
+            const isTabletUA = /ipad|android|tablet/.test(userAgent) || (userAgent.includes('macintosh') && navigator.maxTouchPoints > 1)
+            
+            setIsTouchDevice(hasTouch && (isTabletSize || isTabletUA))
+        }
+        
+        detectTouchDevice()
+        window.addEventListener('resize', detectTouchDevice)
+        return () => window.removeEventListener('resize', detectTouchDevice)
+    }, [])
+
+    // Vacation types - logic moved to CSS classes
     const leaveTypes = [
-        { id: 'example', label: '例', color: 'leave-red', description: '例假' },
-        { id: 'rest', label: '休', color: 'leave-blue', description: '休假' },
-        { id: 'annual', label: 'A/L', color: 'leave-green', description: '年假' },
-        { id: 'welfare', label: '福補', color: 'leave-purple', description: '福利補休' },
-        { id: 'medical', label: '體檢', color: 'leave-yellow', description: '體檢' },
-        { id: 'sick', label: 'S/L', color: 'leave-orange', description: '病假' },
-        { id: 'personal', label: 'P/L', color: 'leave-pink', description: '事假' }
+        { id: 'example', label: '例', description: '例假' },
+        { id: 'rest', label: '休', description: '休假' },
+        { id: 'annual', label: 'A/L', description: '年假' },
+        { id: 'welfare', label: '福補', description: '福利補休' },
+        { id: 'medical', label: '體檢', description: '體檢' },
+        { id: 'sick', label: 'S/L', description: '病假' },
+        { id: 'personal', label: 'P/L', description: '事假' }
     ]
 
-    const monthNames = [
-        '1月', '2月', '3月', '4月', '5月', '6月',
-        '7月', '8月', '9月', '10月', '11月', '12月'
-    ]
-
+    const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
     const dayNames = ['日', '一', '二', '三', '四', '五', '六']
 
-    // Get calendar data
+    // Calendar data generation
     const getCalendarData = () => {
         const firstDay = new Date(currentYear, currentMonth, 1)
         const lastDay = new Date(currentYear, currentMonth + 1, 0)
         const daysInMonth = lastDay.getDate()
         const startDayOfWeek = firstDay.getDay()
 
-        // Generate calendar days
         const calendarDays = []
         
-        // Add empty cells for days before month starts
         for (let i = 0; i < startDayOfWeek; i++) {
             calendarDays.push(null)
         }
         
-        // Add days of the month
         for (let day = 1; day <= daysInMonth; day++) {
             calendarDays.push(day)
         }
 
-        // Calculate total cells needed (6 rows x 7 columns = 42)
         while (calendarDays.length < 42) {
             calendarDays.push(null)
         }
 
-        return {
-            calendarDays,
-            startDayOfWeek,
-            daysInMonth
-        }
+        return { calendarDays, startDayOfWeek, daysInMonth }
     }
 
     const { calendarDays, startDayOfWeek } = getCalendarData()
 
-    // Year picker functions
+    // Year/Month selection handlers
     const handleYearClick = () => {
         setShowYearPicker(!showYearPicker)
         setShowMonthPicker(false)
@@ -77,7 +115,6 @@ const GDayPlanner = () => {
         setShowYearPicker(false)
     }
 
-    // Month picker functions
     const handleMonthClick = () => {
         setShowMonthPicker(!showMonthPicker)
         setShowYearPicker(false)
@@ -88,86 +125,66 @@ const GDayPlanner = () => {
         setShowMonthPicker(false)
     }
 
-    // Generate year options (current year ± 5 years)
     const getYearOptions = () => {
         const currentYearDefault = new Date().getFullYear()
-        const startYear = currentYearDefault - 5
-        const endYear = currentYearDefault + 5
         const years = []
-        for (let i = startYear; i <= endYear; i++) {
+        for (let i = currentYearDefault; i <= currentYearDefault + 2; i++) {
             years.push(i)
         }
         return years
     }
 
-    // Mobile touch event handlers
-    const handleTouchStart = (e, leaveType, fromDate = null) => {
-        setTouchedItem({ leaveType, fromDate })
-        setDraggedItem(leaveType)
-        setDraggedFromDate(fromDate)
-        
-        const touch = e.touches[0]
-        setDragPreview({
-            visible: true,
-            x: touch.clientX,
-            y: touch.clientY
-        })
-        
-        // Prevent default to avoid scrolling
-        e.preventDefault()
-    }
-
-    const handleTouchMove = (e) => {
-        if (!touchedItem) return
-        
-        const touch = e.touches[0]
-        setDragPreview({
-            visible: true,
-            x: touch.clientX,
-            y: touch.clientY
-        })
-        
-        e.preventDefault()
-    }
-
-    const handleTouchEnd = (e) => {
-        if (!touchedItem) return
-        
-        // Find the element at the touch position
-        const touch = e.changedTouches[0]
-        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY)
-        
-        // Find the calendar cell
-        const calendarCell = elementBelow?.closest('.calendar-cell')
-        if (calendarCell) {
-            const day = parseInt(calendarCell.dataset.day)
-            if (day) {
-                handleDropAction(day)
+    // Touch device interaction handlers
+    const handleLeaveTypeClick = (leaveType) => {
+        if (isTouchDevice) {
+            if (selectedLeaveType?.id === leaveType.id) {
+                setSelectedLeaveType(null)
             } else {
-                // Dropped outside calendar - remove item
-                handleEmptyDropAction()
+                setSelectedLeaveType(leaveType)
+                toast.success(`已選擇 ${leaveType.description}，請點擊日期進行安排`, {
+                    duration: 2000,
+                    position: 'top-center'
+                })
             }
-        } else {
-            // Dropped outside calendar - remove item
-            handleEmptyDropAction()
         }
-        
-        // Reset touch state
-        setTouchedItem(null)
-        setDragPreview({ visible: false, x: 0, y: 0 })
-        setDraggedItem(null)
-        setDraggedFromDate(null)
     }
 
-    // Regular drag handlers for leave types (from top section)
+    const handleCalendarCellClick = (day) => {
+        if (isTouchDevice && day) {
+            const key = `${currentYear}-${currentMonth}-${day}`
+            
+            if (droppedItems[key]) {
+                const isConfirmed = window.confirm(`確定要移除 ${droppedItems[key].description} 嗎？`)
+                if (isConfirmed) {
+                    setDroppedItems(prev => {
+                        const newItems = { ...prev }
+                        delete newItems[key]
+                        return newItems
+                    })
+                    toast.success('已移除假期安排', { duration: 1500, position: 'top-center' })
+                }
+            } else if (selectedLeaveType) {
+                setDroppedItems(prev => ({ ...prev, [key]: selectedLeaveType }))
+                toast.success(`已安排 ${selectedLeaveType.description}`, { duration: 1500, position: 'top-center' })
+            }
+        }
+    }
+
+    const clearSelection = () => {
+        setSelectedLeaveType(null)
+        toast.success('已取消選擇', { duration: 1500, position: 'top-center' })
+    }
+
+    // Desktop drag handlers
     const handleDragStart = (e, leaveType) => {
+        if (isTouchDevice) return
         setDraggedItem(leaveType)
         setDraggedFromDate(null)
         e.dataTransfer.effectAllowed = 'copy'
     }
 
-    // Regular drag handlers for dropped leaves (from calendar)
     const handleLeaveDragStart = (e, leaveType, dateKey) => {
+        if (isTouchDevice) return
         setDraggedItem(leaveType)
         setDraggedFromDate(dateKey)
         e.dataTransfer.effectAllowed = 'move'
@@ -175,21 +192,21 @@ const GDayPlanner = () => {
     }
 
     const handleDragOver = (e) => {
+        if (isTouchDevice) return
         e.preventDefault()
         e.dataTransfer.dropEffect = draggedFromDate ? 'move' : 'copy'
     }
 
     const handleDrop = (e, day) => {
+        if (isTouchDevice) return
         e.preventDefault()
         handleDropAction(day)
     }
 
-    // Common drop logic
     const handleDropAction = (day) => {
         if (draggedItem && day) {
             const key = `${currentYear}-${currentMonth}-${day}`
             
-            // If dragging from another date, remove from old location
             if (draggedFromDate) {
                 setDroppedItems(prev => {
                     const newItems = { ...prev }
@@ -198,26 +215,17 @@ const GDayPlanner = () => {
                     return newItems
                 })
             } else {
-                // Add new item
-                setDroppedItems(prev => ({
-                    ...prev,
-                    [key]: draggedItem
-                }))
+                setDroppedItems(prev => ({ ...prev, [key]: draggedItem }))
             }
         }
         setDraggedItem(null)
         setDraggedFromDate(null)
     }
 
-    // Handle drop on empty area (outside calendar)
     const handleEmptyAreaDrop = (e) => {
+        if (isTouchDevice) return
         e.preventDefault()
-        handleEmptyDropAction()
-    }
-
-    const handleEmptyDropAction = () => {
         if (draggedFromDate) {
-            // Remove item if dragged from calendar to empty area
             setDroppedItems(prev => {
                 const newItems = { ...prev }
                 delete newItems[draggedFromDate]
@@ -228,12 +236,10 @@ const GDayPlanner = () => {
         setDraggedFromDate(null)
     }
 
-    // Validation functions
+    // Validation
     const validateLeaveRules = () => {
         const currentYearKey = currentYear.toString()
         const errors = []
-
-        // Count 體檢 and 福補 for the current year
         let medicalCount = 0
         let welfareCount = 0
         
@@ -244,12 +250,9 @@ const GDayPlanner = () => {
             }
         })
 
-        // Check 體檢 limit (max 1 per year)
         if (medicalCount > 1) {
             errors.push(`體檢每年最多只能請一天，目前已安排 ${medicalCount} 天`)
         }
-
-        // Check 福補 limit (max 7 per year)
         if (welfareCount > 7) {
             errors.push(`福補每年最多只能請七天，目前已安排 ${welfareCount} 天`)
         }
@@ -257,32 +260,24 @@ const GDayPlanner = () => {
         return errors
     }
 
-    // Screenshot generation with validation
+    // Screenshot generation
     const generateScreenshot = async () => {
         if (!plannerRef.current) return
 
-        // Validate before generating screenshot
         const errors = validateLeaveRules()
-        
         if (errors.length > 0) {
             errors.forEach(error => {
-                toast.error(error, {
-                    duration: 5000,
-                    position: 'top-center'
-                })
+                toast.error(error, { duration: 5000, position: 'top-center' })
             })
             return
         }
 
         try {
-            // Load html2canvas from CDN
             if (!window.html2canvas) {
                 const script = document.createElement('script')
                 script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
                 document.head.appendChild(script)
-                await new Promise((resolve) => {
-                    script.onload = resolve
-                })
+                await new Promise((resolve) => { script.onload = resolve })
             }
 
             const canvas = await window.html2canvas(plannerRef.current, {
@@ -292,25 +287,142 @@ const GDayPlanner = () => {
                 allowTaint: true
             })
             
-            // Create download link
+            const monthName = monthNames[currentMonth].replace('月', '')
+            const userName = userDetails?.name || 'user'
+            const screenshotFilename = `${currentYear}年${monthName}月指定休假一覽-${userName}.png`
+            
             const link = document.createElement('a')
-            link.download = `vacation-planner-${currentYear}-${currentMonth + 1}.png`
+            link.download = screenshotFilename
             link.href = canvas.toDataURL('image/png')
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
 
-            // Show success message
-            toast.success('截圖已成功儲存！', {
-                duration: 3000,
-                position: 'top-center'
-            })
+            await generatePDFForm()
+            toast.success('截圖及表單已成功儲存！', { duration: 3000, position: 'top-center' })
         } catch (error) {
             console.error('Error generating screenshot:', error)
-            toast.error('截圖產生失敗，請重試', {
-                duration: 3000,
-                position: 'top-center'
+            toast.error('截圖產生失敗，請重試', { duration: 3000, position: 'top-center' })
+        }
+    }
+
+    // PDF form generation (simplified)
+    const generatePDFForm = async () => {
+        try {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')
+            
+            canvas.width = 3508
+            canvas.height = 2480
+            
+            const templateImg = new Image()
+            templateImg.crossOrigin = 'anonymous'
+            
+            await new Promise((resolve, reject) => {
+                templateImg.onload = resolve
+                templateImg.onerror = reject
+                templateImg.src = formTemplateImage
             })
+            
+            ctx.drawImage(templateImg, 0, 0, 3508, 2480)
+
+            const renderTextOnCanvas = (text, x, y, fontSize = 40) => {
+                if (!text || typeof text !== 'string') return
+                
+                const cleanText = String(text).trim()
+                if (!cleanText) return
+                
+                ctx.font = `${fontSize}px "Noto Sans TC", "Microsoft JhengHei", sans-serif`
+                ctx.fillStyle = 'black'
+                ctx.textAlign = 'left'
+                ctx.textBaseline = 'middle'
+                ctx.fillText(cleanText, x, y)
+            }
+
+            const convertToCanvasCoords = (x, y) => {
+                const scaleX = 2.5
+                const scaleY = 3.0
+                const pixelX = (x / 72) * 800 / scaleX
+                const pixelY = 2480 - ((y / 72) * 900 / scaleY)
+                return { x: pixelX, y: pixelY }
+            }
+
+            if (userDetails) {
+                const today = new Date()
+                const applicationDate = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`
+                
+                let coords = convertToCanvasCoords(133, 475)
+                renderTextOnCanvas(applicationDate, coords.x, coords.y, 40)
+                coords = convertToCanvasCoords(467, 475)
+                renderTextOnCanvas(applicationDate, coords.x, coords.y, 40)
+                
+                coords = convertToCanvasCoords(260, 475)
+                renderTextOnCanvas(userDetails.employeeID || '', coords.x, coords.y, 40)
+                coords = convertToCanvasCoords(600, 475)
+                renderTextOnCanvas(userDetails.employeeID || '', coords.x, coords.y, 40)
+                
+                coords = convertToCanvasCoords(340, 475)
+                renderTextOnCanvas(userDetails.name || '', coords.x, coords.y, 40)
+                coords = convertToCanvasCoords(675, 475)
+                renderTextOnCanvas(userDetails.name || '', coords.x, coords.y, 40)
+            }
+            
+            // Process vacation entries (simplified logic)
+            const vacationEntries = Object.entries(droppedItems)
+                .filter(([dateKey]) => {
+                    const [year, month] = dateKey.split('-').map(Number)
+                    return year === currentYear && month === currentMonth
+                })
+                .sort(([dateKeyA], [dateKeyB]) => {
+                    const dayA = parseInt(dateKeyA.split('-')[2])
+                    const dayB = parseInt(dateKeyB.split('-')[2])
+                    return dayA - dayB
+                })
+
+            const rowCoordinates = [
+                { leftDate: 90, leftVacation: 175, rightDate: 425, rightVacation: 510, y: 417 },
+                { leftDate: 90, leftVacation: 175, rightDate: 425, rightVacation: 510, y: 395 },
+                { leftDate: 90, leftVacation: 175, rightDate: 425, rightVacation: 510, y: 374 },
+                { leftDate: 250, leftVacation: 340, rightDate: 590, rightVacation: 677, y: 417 },
+                { leftDate: 250, leftVacation: 340, rightDate: 590, rightVacation: 677, y: 395 },
+                { leftDate: 250, leftVacation: 340, rightDate: 590, rightVacation: 677, y: 374 }
+            ]
+            
+            vacationEntries.forEach(([dateKey, leaveType], index) => {
+                if (index >= 6) return
+                
+                const [year, month, day] = dateKey.split('-').map(Number)
+                const formattedDate = `${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}`
+                
+                if (index < rowCoordinates.length) {
+                    const row = rowCoordinates[index]
+                    
+                    let coords = convertToCanvasCoords(row.leftDate, row.y)
+                    renderTextOnCanvas(formattedDate, coords.x, coords.y, 40)
+                    coords = convertToCanvasCoords(row.leftVacation, row.y)
+                    renderTextOnCanvas(leaveType.label, coords.x, coords.y, 40)
+                    
+                    coords = convertToCanvasCoords(row.rightDate, row.y)
+                    renderTextOnCanvas(formattedDate, coords.x, coords.y, 40)
+                    coords = convertToCanvasCoords(row.rightVacation, row.y)
+                    renderTextOnCanvas(leaveType.label, coords.x, coords.y, 40)
+                }
+            })
+            
+            const monthName = monthNames[currentMonth].replace('月', '')
+            const userName = userDetails?.name || 'user'
+            const formFilename = `FMEF-06-03空服組員指定任務休假日申請單-${userName}${currentYear}年${monthName}月.png`
+            
+            const formLink = document.createElement('a')
+            formLink.download = formFilename
+            formLink.href = canvas.toDataURL('image/png')
+            document.body.appendChild(formLink)
+            formLink.click()
+            document.body.removeChild(formLink)
+            
+        } catch (error) {
+            console.error('Error generating PDF form:', error)
+            toast.error('表單產生失敗', { duration: 3000, position: 'top-center' })
         }
     }
 
@@ -319,92 +431,96 @@ const GDayPlanner = () => {
             className="planner-container"
             onDragOver={handleDragOver}
             onDrop={handleEmptyAreaDrop}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
         >
             <Toaster />
             
-            {/* Mobile Drag Preview */}
-            {dragPreview.visible && touchedItem && (
-                <div
-                    className="mobile-drag-preview"
-                    style={{
-                        position: 'fixed',
-                        left: dragPreview.x - 30,
-                        top: dragPreview.y - 30,
-                        pointerEvents: 'none',
-                        zIndex: 9999
-                    }}
-                >
-                    <div className={`leave-type-item ${touchedItem.leaveType.color}`}>
-                        {touchedItem.leaveType.label}
-                    </div>
-                </div>
+            {userDetails && (
+                <Navbar 
+                    userDetails={userDetails} 
+                    title="G-Day 假期規劃表" 
+                    onLogout={onLogout}
+                />
             )}
             
             <div ref={plannerRef} className="planner-content">
                 {/* Header */}
                 <div className="planner-header">
-                    <h1 className="planner-title">G-Day 假期規劃表</h1>
+                    <h1 className="planner-title">{userDetails.name} G-Day 假期規劃表</h1>
                     <div className="navigation-container">
-                        <div className="date-picker-container">
-                            <span 
-                                className="clickable-date"
-                                onClick={handleYearClick}
-                                title="點擊選擇年份"
-                            >
-                                {currentYear}年
-                            </span>
-                            {showYearPicker && (
-                                <div className="picker-dropdown year-picker">
-                                    {getYearOptions().map(year => (
-                                        <div
-                                            key={year}
-                                            className={`picker-option ${year === currentYear ? 'selected' : ''}`}
-                                            onClick={() => selectYear(year)}
-                                        >
-                                            {year}年
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <div className="date-picker-container">
-                            <span 
-                                className="clickable-date"
-                                onClick={handleMonthClick}
-                                title="點擊選擇月份"
-                            >
-                                {monthNames[currentMonth]}
-                            </span>
-                            {showMonthPicker && (
-                                <div className="picker-dropdown month-picker">
-                                    {monthNames.map((month, index) => (
-                                        <div
-                                            key={index}
-                                            className={`picker-option ${index === currentMonth ? 'selected' : ''}`}
-                                            onClick={() => selectMonth(index)}
-                                        >
-                                            {month}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                        <div className="date-picker-wrapper">
+                            <div className="date-picker-container">
+                                <span 
+                                    className="clickable-date"
+                                    onClick={handleYearClick}
+                                    title="點擊選擇年份"
+                                >
+                                    {currentYear}年
+                                </span>
+                                {showYearPicker && (
+                                    <div className="picker-dropdown year-picker">
+                                        {getYearOptions().map(year => (
+                                            <div
+                                                key={year}
+                                                className={`picker-option ${year === currentYear ? 'selected' : ''}`}
+                                                onClick={() => selectYear(year)}
+                                            >
+                                                {year}年
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="date-picker-container">
+                                <span 
+                                    className="clickable-date"
+                                    onClick={handleMonthClick}
+                                    title="點擊選擇月份"
+                                >
+                                    {monthNames[currentMonth]}
+                                </span>
+                                {showMonthPicker && (
+                                    <div className="picker-dropdown month-picker">
+                                        {monthNames.map((month, index) => (
+                                            <div
+                                                key={index}
+                                                className={`picker-option ${index === currentMonth ? 'selected' : ''}`}
+                                                onClick={() => selectMonth(index)}
+                                            >
+                                                {month}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Leave Types */}
                 <div className="leave-types-section">
-                    <h3 className="leave-types-title">假期類型</h3>
+                    <div className="leave-types-header">
+                        <h3 className="leave-types-title">假期類型</h3>
+                        {isTouchDevice && selectedLeaveType && (
+                            <button
+                                onClick={clearSelection}
+                                className="clear-selection-btn"
+                                title="取消選擇"
+                            >
+                                <X size={16} />
+                                取消選擇
+                            </button>
+                        )}
+                    </div>
                     <div className="leave-types-grid">
                         {leaveTypes.map((leaveType) => (
                             <div
                                 key={leaveType.id}
-                                draggable
+                                draggable={!isTouchDevice}
                                 onDragStart={(e) => handleDragStart(e, leaveType)}
-                                onTouchStart={(e) => handleTouchStart(e, leaveType)}
-                                className={`leave-type-item ${leaveType.color}`}
+                                onClick={() => handleLeaveTypeClick(leaveType)}
+                                className={`leave-type-item leave-${leaveType.id} ${
+                                    isTouchDevice && selectedLeaveType?.id === leaveType.id ? 'selected' : ''
+                                }`}
                                 title={leaveType.description}
                             >
                                 <span className="leave-type-label">{leaveType.label}</span>
@@ -415,7 +531,6 @@ const GDayPlanner = () => {
 
                 {/* Calendar */}
                 <div className="calendar-container">
-                    {/* Calendar Header */}
                     <div className="calendar-header">
                         {dayNames.map((day) => (
                             <div key={day} className="calendar-day-name">
@@ -424,7 +539,6 @@ const GDayPlanner = () => {
                         ))}
                     </div>
 
-                    {/* Calendar Body */}
                     <div className="calendar-grid">
                         {calendarDays.map((day, index) => {
                             if (!day) {
@@ -442,16 +556,18 @@ const GDayPlanner = () => {
                                     data-day={day}
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, day)}
-                                    className={`calendar-cell ${isWeekend ? 'weekend' : ''}`}
+                                    onClick={() => handleCalendarCellClick(day)}
+                                    className={`calendar-cell ${isWeekend ? 'weekend' : ''} ${
+                                        isTouchDevice ? 'clickable' : ''
+                                    }`}
                                 >
                                     <div className="calendar-day-number">{day}</div>
                                     {droppedLeave && (
                                         <div 
-                                            className={`dropped-leave ${droppedLeave.color}`}
-                                            draggable
+                                            className={`dropped-leave leave-${droppedLeave.id}`}
+                                            draggable={!isTouchDevice}
                                             onDragStart={(e) => handleLeaveDragStart(e, droppedLeave, key)}
-                                            onTouchStart={(e) => handleTouchStart(e, droppedLeave, key)}
-                                            title="拖拉到空白處可刪除"
+                                            title={isTouchDevice ? "點擊移除" : "拖拉到空白處可刪除"}
                                         >
                                             {droppedLeave.label}
                                         </div>
@@ -464,11 +580,23 @@ const GDayPlanner = () => {
 
                 {/* Instructions */}
                 <div className="instructions">
-                    <p className="instruction-text">
-                        <Calendar className="instruction-icon" />
-                        把假期類型拉到對指定日期上進行規劃
-                    </p>
-                    <p className="instruction-note">拉已安排的假期到空白處可刪除</p>
+                    {isTouchDevice ? (
+                        <>
+                            <p className="instruction-text">
+                                <Calendar className="instruction-icon" />
+                                點選假期類別後，再點選日期進行安排
+                            </p>
+                            <p className="instruction-note">點選已安排的假期可移除（需確認）</p>
+                        </>
+                    ) : (
+                        <>
+                            <p className="instruction-text">
+                                <Calendar className="instruction-icon" />
+                                把假期類型拖拉到指定日期上進行規劃
+                            </p>
+                            <p className="instruction-note">拖拉已安排的假期到空白處可刪除</p>
+                        </>
+                    )}
                     <p className="instruction-note">點選年份或月份可快速切換</p>
                 </div>
             </div>
@@ -480,7 +608,7 @@ const GDayPlanner = () => {
                     className="screenshot-button"
                 >
                     <Camera className="screenshot-icon" />
-                    截圖 SAVE
+                    截圖 & 產生表單
                 </button>
             </div>
         </div>
