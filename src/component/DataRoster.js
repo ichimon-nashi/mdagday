@@ -153,7 +153,7 @@ export const getEmployeeById = (id) => {
 // Create approved users with complete details
 export const approvedUsers = [
 	// KHH 高雄組員
-	{ id: "22119", password: "0910" }, //徐永成
+	{ id: "22119", password: "timmy910" }, //徐永成
 	{ id: "51892", password: "1015" }, //Eric
 	{ id: "55120", password: "0109" }, //楊子翎
 	{ id: "34011", password: "0521" }, //陳中榆

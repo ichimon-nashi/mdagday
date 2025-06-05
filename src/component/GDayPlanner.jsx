@@ -141,7 +141,7 @@ const GDayPlanner = ({ userDetails, onLogout }) => {
                 setSelectedLeaveType(null)
             } else {
                 setSelectedLeaveType(leaveType)
-                toast.success(`已選擇 ${leaveType.description}，請點擊日期進行安排`, {
+                toast.success(`已選擇 ${leaveType.description}，請點選日期進行安排`, {
                     duration: 2000,
                     position: 'top-center'
                 })
